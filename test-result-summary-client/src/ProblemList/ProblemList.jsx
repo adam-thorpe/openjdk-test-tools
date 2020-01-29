@@ -2,16 +2,15 @@ import React, { Component } from 'react';
 //import { params, getParams } from '../utils/query';
 import { Icon, Tooltip } from 'antd';
 //import { Link } from 'react-router-dom';
-//import Checkboxes from './Checkboxes';
+import Checkboxes from '../Build/Checkboxes';
 
-import './ProblemList2.css';
 import './ProblemList.css';
 import TestData from './testData.js';
 
 const jdkVersions = [{name: "JDK8", short: "8"}, {name: "JDK11", short: "11"}, {name: "JDK13", short: "13"}, {name: "JDK14", short: "14"}];
 const jdkImpls = [{name: "HotSpot", short: "hs"}, {name: "OpenJ9", short: "j9"}];
 
-class Cell extends Component {
+class CellBlock extends Component {
 	render() {
 		const { excludes, version } = this.props;
 		return <div className="nested-wrapper">
@@ -69,17 +68,44 @@ class Cell extends Component {
 	}
 }
 
-export default class ProblemList extends Component {
-	state = {
-		testData: TestData
-    };
-
+class PlatformCellBlock extends Component {
 	render() {
-		return <div className="wrapper">
-			<div className="box title-header" style={{ gridColumn: 1, gridRow: 1}}>JDK Lang</div>
-			{this.state.testData.map((test, y) => {
+		return <div className="box-small">
+			<div className="nested-wrapper">
+				{jdkImpls.map((impl, x) => {
+					return <>
+						<div className="platformCell" style={{ gridColumn: x + 1, gridRow: 1}}>
+							{impl.short}
+						</div>
+					</>
+				})}
+			</div>
+		</div>
+	}
+}
+
+class SuiteBlock extends Component {
+	render() {
+		const { testData, suite } = this.props;
+
+		return <div className="wrapper" style={{ gridColumn: 1, gridRow: 1 }}>
+			<div className="title-header" style={{ gridColumn: 1, gridRow: 1 }}>{suite}</div>
+			{jdkVersions.map((version, x) => {
 				return <>
-					<div className="box-small test-header" style={{ gridColumn: 1, gridRow: y + 2 }}>{test.name}</div>
+					<div>
+						<div className="version-header" style={{ gridColumn: x + 2, gridRow: 1 }}>
+							{version.short}
+						</div>
+						<div style={{ gridColumn: x + 2, gridRow: 2 }}>
+							<PlatformCellBlock />
+						</div>
+					</div>
+				</>
+			})}
+
+			{testData.map((test, y) => {
+				return <>
+					<div className="box-small test-header" style={{ gridColumn: 1, gridRow: y + 3 }}>{test.name}</div>
 
 					{jdkVersions.map((version, x) => {
 						let excludeVersions = [];
@@ -90,9 +116,8 @@ export default class ProblemList extends Component {
 						})}
 
 						return <>
-							<div className="version-header" style={{ gridColumn: x + 2, gridRow: 1}}>{version.short}</div>
-							<div className="box-small" style={{ gridColumn: x + 2, gridRow: y + 2}}>
-								<Cell excludes={excludeVersions} version={version.name}/>
+							<div className="box-small" style={{ gridColumn: x + 2, gridRow: y + 3 }}>
+								<CellBlock excludes={excludeVersions} version={version.name}/>
 							</div>
 						</>
 					})}	
@@ -100,4 +125,57 @@ export default class ProblemList extends Component {
 			})}
 		</div>
 	}
+}
+
+export default class ProblemList extends Component {
+	state = {
+		testData: TestData
+    };
+
+	render () {
+		const { testData } = this.state
+
+		return <div className="wrapper">
+			{testData.map((suite, z) => {
+				return <>
+					<div className="wrapper suite-box" style={{ gridColumn: 1, gridRow: z + 1 }}>
+						<div className="title-header" style={{ gridColumn: 1, gridRow: 1 }}>{suite.suite}</div>
+						{jdkVersions.map((version, x) => {
+							return <>
+								<div>
+									<div className="version-header" style={{ gridColumn: x + 2, gridRow: 1 }}>
+										{version.short}
+									</div>
+									{/* <div style={{ gridColumn: x + 2, gridRow: 2 }}>
+										<PlatformCellBlock />
+									</div> */}
+								</div>
+							</>
+						})}
+						{suite.tests.map((test, y) => {
+							return <>
+								<div className="box-small test-header" style={{ gridColumn: 1, gridRow: y + 3 }}>{test.name}</div>
+
+								{jdkVersions.map((version, x) => {
+									let excludeVersions = [];
+									{test.excludes.map((exclude) => {
+										if (version.name == exclude.version) {
+											excludeVersions.push(exclude)
+										}
+									})}
+
+									return <>
+										<div className="box-small" style={{ gridColumn: x + 2, gridRow: y + 3 }}>
+											<CellBlock excludes={excludeVersions} version={version.name}/>
+										</div>
+									</>
+								})}	
+							</>
+						})}
+					</div>
+				</>
+			})}
+		</div>
+	}
+	
 }
