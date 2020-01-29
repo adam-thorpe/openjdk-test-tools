@@ -1,0 +1,54 @@
+.version-header {
+    background-color: rgb(247, 247, 247);
+    margin-left: 15px;
+    text-align: center;
+    border-radius: 4px;
+    padding: 4px;
+    font-size: 18px;
+    width: 55px;
+}
+
+
+.title-header {
+    background-color: rgb(247, 247, 247);
+    text-align: center;
+    border-radius: 4px;
+    padding: 4px;
+    font-size: 18px;
+}
+
+.test-header {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+}
+
+.box-small {
+    border-radius: 4px;
+    padding: 0px 10px;
+}
+
+.myCell {
+    color: #fff;
+    border-radius: 4px;
+    padding: 4px;
+    margin: 4px;
+    width: 24px;
+    height: 24px;
+    text-align: center;
+    background-color: rgb(247, 247, 247);
+
+    align-items: center;
+    justify-content: center;
+    display: flex;
+}
+
+.myCell.OPEN {
+    background-color: rgb(44, 190, 78);
+}
+
+.myCell.CLOSED {
+    background-color: rgb(255, 85, 0);
+}
