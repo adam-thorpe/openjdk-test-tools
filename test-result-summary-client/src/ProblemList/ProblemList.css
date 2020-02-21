@@ -24,7 +24,7 @@
     display: flex;
     align-items: center;
     font-size: 14px;
-    width: 400px;
+    width: 800px;
 }
 
 .box-small {
@@ -65,6 +65,10 @@
 
 .myCell.OPEN {
     background-color: rgb(44, 190, 78);
+}
+
+.myCell.UNKNOWN {
+    background-color: rgb(231, 171, 19);
 }
 
 .myCell.CLOSED {

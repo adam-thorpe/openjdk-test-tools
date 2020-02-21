@@ -1,6 +1,7 @@
 const TestData = [
     {
         suite: "jdk_lang",
+        suiteSub: "lang",
         tests: [
             {
                 name: "java/lang/ClassLoader/LibraryPathProperty.java", 
@@ -24,6 +25,7 @@ const TestData = [
     
     {
         suite: "jdk_nio",
+        suiteSub: "nio",
         tests: [
             {
                 name: "java/nio/channels/AsynchronousFileChannel/Basic.java",
