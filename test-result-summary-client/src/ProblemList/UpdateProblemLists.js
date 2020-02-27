@@ -1,10 +1,13 @@
-import React, { Component } from 'react';
-import TestData from './testData';
+import githubToken from "./.githubToken.js";
 
-var gitToken = "842880109d008f5f5b4c3cb77e6254c846fcdeaf";
-
+/**
+ * Gets data from the openjdk problem lists at AdoptOpenJDK/openjdk-tests
+ * @param {*} data The array of data which will be passed back
+ * @param {*} jdkVersions Default jdk versions that we're interested in
+ * @param {*} jdkImpls Default implementations that we're interested in
+ * @returns Data array of parsed tests and issues
+ */
 export default async function UpdateProblemLists( data, jdkVersions, jdkImpls ) {
-
     for (var jdkVersion of jdkVersions) {
         for (var jdkImpl of jdkImpls) {
             var url = ""
@@ -31,29 +34,18 @@ export default async function UpdateProblemLists( data, jdkVersions, jdkImpls ) 
         }
     }
 
-
-    //var issueName = "https://api.github.com/repos/adam-thorpe/dummyTest/issues/1";
-    // var issueName = "https://api.github.com/repos/adoptopenjdk/openjdk-tests/issues/500";
-    
-    // data[0].tests.push({name: "java/lang/ClassLoader/LibraryPathProperty.java", 
-    //     excludes: [
-    //         { version: "JDK11", impl: "hs", state: await isIssueOpen(issueName), platforms: ["macosx-all", "windows-all"], issue: "https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297"},
-    //     ]
-    // })
-
-    console.log(data);
-
     return data;
-
-    //this.setState({testData: TestData})
-    //return TestData;
 }
 
-
+/**
+ * Uses the Github API to check the state of an issue
+ * @param {String} issue API link to this issue
+ * @returns State of the issue
+ */
 async function isIssueOpen(issue) {
     const myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
-    myHeaders.append('Authorization', 'token 842880109d008f5f5b4c3cb77e6254c846fcdeaf');
+    myHeaders.append('Authorization', 'token ' + githubToken);
 
     const settings = {
         method: "GET",
@@ -69,33 +61,6 @@ async function isIssueOpen(issue) {
 
 
 /**
- * Determines whether the test links to an open or closed issue
- * @param {String} issue 
- * @returns open|closed|unknown
- */
-// async function isIssueOpen(issue) {
-//     var state = "UNKNOWN"
-//     var request = new XMLHttpRequest();
-
-//     request.open("GET", issue, true);
-//     
-//     request.send();
-
-//     request.onreadystatechange = function () {
-//         if (request.readyState == 4 && request.status == 200) {
-//             var response = request.responseText;
-//             var obj = JSON.parse(response); 
-            
-//             state = obj.state;
-//             return state;
-//         }
-//     }
-
-//     return state;
-// }
-
-
-/**
  * Fetches a Problem List
  * @param {{version: string; impl: string; url: string;}} PL Data about the problem list
  * @retuns An array of objects, each of which is a line in the problem list
@@ -103,19 +68,19 @@ async function isIssueOpen(issue) {
 function getProblemList(PL) {
     var xhttp = new XMLHttpRequest();
     xhttp.open("GET", PL.url, false);
-    xhttp.setRequestHeader("Authorization", "Bearer "+ gitToken);
+    xhttp.setRequestHeader("Authorization", "Bearer "+ githubToken);
     xhttp.send();
 
     var plStr = atob(JSON.parse(xhttp.responseText).content);
     return plStr.split("\n");
 }
 
-
 /**
  * Parses a single Test and adds it to the array of data
  * @param {{version: string; impl: string; url: string;}} PL Data about the problem list
  * @param {String} test Single line from the PL which will be parsed
- * @param {{suiteName: string; suiteSub: string; tests: any[];}[]} data Array of data which will be displayed 
+ * @param {{suiteName: string; suiteSub: string; tests: any[];}[]} data Array of data which will be displayed
+ * @returns An updated version of the data array
  */
 async function parseProblemList(PL, test, data) {
     if(test == "" || test.charAt(0) == "#") {
