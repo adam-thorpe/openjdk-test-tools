@@ -2,34 +2,50 @@ import githubToken from "./.githubToken.js";
 
 /**
  * Gets data from the openjdk problem lists at AdoptOpenJDK/openjdk-tests
- * @param {*} data The array of data which will be passed back
- * @param {*} jdkVersions Default jdk versions that we're interested in
- * @param {*} jdkImpls Default implementations that we're interested in
+ * @param {String[]} jdkVersions Selected JDK versions
+ * @param {String[]} jdkImpls Selected JDK implementations
+ * @param {String[]} testSuites Selected test suites
  * @returns Data array of parsed tests and issues
  */
-export default async function UpdateProblemLists( data, jdkVersions, jdkImpls ) {
-    for (var jdkVersion of jdkVersions) {
-        for (var jdkImpl of jdkImpls) {
-            var url = ""
-            if (jdkImpl.name == "OpenJ9") {
-                url = "https://api.github.com/repos/adoptopenjdk/openjdk-tests/contents/openjdk/ProblemList_openjdk" + jdkVersion.short + "-openj9.txt";
-            } else if (jdkImpl.name == "Upstream") {
-                var path = ""
-                if (jdkVersion.sub <= 9) {
-                    path = "jdk/test/"
-                } else {
-                    path = "test/jdk/"
-                }
-                url = "https://api.github.com/repos/adoptopenjdk/openjdk-jdk" + jdkVersion.short + "u/contents/" + path + "ProblemList.txt";
-            } else {
-                url = "https://api.github.com/repos/adoptopenjdk/openjdk-tests/contents/openjdk/ProblemList_openjdk" + jdkVersion.short + ".txt";
-            }
-            var PL = {version: jdkVersion.name, impl: jdkImpl.short, url: url}
+export default async function UpdateProblemLists( jdkVersions, jdkImpls, testSuites ) {
 
-            var plArr = getProblemList(PL);
+    // Create the data array
+    var data = [];
+    for (const suite of testSuites) {
+        data.push({suite: suite, tests: []});
+    }
+
+    // Determine the problem list url for each version and impl
+    for (const version of jdkVersions) {
+        for (const impl of jdkImpls) {
+            var url = "";
+
+            // OpenJ9 URL's
+            if (impl === "j9") {
+                url = "https://api.github.com/repos/adoptopenjdk/openjdk-tests/contents/openjdk/ProblemList_openjdk" + version + "-openj9.txt";
+
+            // Upstream URL's
+            } else if (impl === "up") {
+                var path = "";
+                if (version.sub <= 9) {
+                    path = "jdk/test/";
+                } else {
+                    path = "test/jdk/";
+                }
+                url = "https://api.github.com/repos/adoptopenjdk/openjdk-jdk" + version + "u/contents/" + path + "ProblemList.txt";
+
+            // Hotspot URL's
+            } else {
+                url = "https://api.github.com/repos/adoptopenjdk/openjdk-tests/contents/openjdk/ProblemList_openjdk" + version + ".txt";
+            }
+
+            // Collect the data together and go and fetch the relevent Problem List
+            const plData = {version: version, impl: impl, url: url};
+            const plArr = getProblemList(plData);
     
-            for (var test of plArr) {
-                await parseProblemList(PL, test, data);
+            // Iterate through each entry in the problem list, asyncronously
+            for (const test of plArr) {
+                await parseProblemList(test, plData, data);
             }
         }
     }
@@ -38,71 +54,60 @@ export default async function UpdateProblemLists( data, jdkVersions, jdkImpls ) 
 }
 
 /**
- * Uses the Github API to check the state of an issue
- * @param {String} issue API link to this issue
- * @returns State of the issue
- */
-async function isIssueOpen(issue) {
-    const myHeaders = new Headers();
-    myHeaders.append('Content-Type', 'application/json');
-    myHeaders.append('Authorization', 'token ' + githubToken);
-
-    const settings = {
-        method: "GET",
-        headers: myHeaders
-    }
-
-    const response = await fetch(issue, settings);
-    const json = await response.json();
-
-    var x = json.state;
-    return x.toUpperCase();
-}
-
-
-/**
  * Fetches a Problem List
- * @param {{version: string; impl: string; url: string;}} PL Data about the problem list
+ * @param {{version: string; impl: string; url: string;}} plData Data about the problem list
  * @retuns An array of objects, each of which is a line in the problem list
  */
-function getProblemList(PL) {
+function getProblemList(plData) {
+    // Create the request
     var xhttp = new XMLHttpRequest();
-    xhttp.open("GET", PL.url, false);
+    xhttp.open("GET", plData.url, false);
     xhttp.setRequestHeader("Authorization", "Bearer "+ githubToken);
     xhttp.send();
 
+    // Handle the result of the request and put into an array of items, where each item is a single line
     var plStr = atob(JSON.parse(xhttp.responseText).content);
     return plStr.split("\n");
 }
 
+
 /**
- * Parses a single Test and adds it to the array of data
- * @param {{version: string; impl: string; url: string;}} PL Data about the problem list
+ * Parses a single test and adds it to the array of data
  * @param {String} test Single line from the PL which will be parsed
- * @param {{suiteName: string; suiteSub: string; tests: any[];}[]} data Array of data which will be displayed
+ * @param {{version: string; impl: string; url: string;}} plData Data about the problem list
+ * @param {{suiteName: string; suiteSub: string; tests: any[];}[]} data Array of parsed tests and issues
  * @returns An updated version of the data array
  */
-async function parseProblemList(PL, test, data) {
-    if(test == "" || test.charAt(0) == "#") {
+async function parseProblemList(test, plData, data) {
+
+    // Return if entry isn't a valid test
+    if(test === "" || test.charAt(0) === "#") {
         return data;
     }
 
-    var testItems = test.split(/[ |\t]+/);
-    if (testItems.length == 0) {
-        console.log("return");
+    // Return if entry isn't in the correct format
+    const testItems = test.split(/[ |\t]+/);
+    if (testItems.length != 3) {
         return data;
     }
-    var testName = testItems[0];
 
+    const testName = testItems[0];
+    const testIssue = testItems[1];
+    const testPlatforms = testItems[2];
+
+    // Iterate through each suite of the array
     for (var dataSuite of data) {
-        var suiteRegex = new RegExp(".*\/" + dataSuite.suiteSub + "\/");
-        if (testName.match(suiteRegex)) {
-            // Found correct suite
+        var suiteRegex = new RegExp(".*\/" + dataSuite.suite + "\/");
 
+        // Continue if suite is selected, ignore otherwise
+        if (testName.match(suiteRegex)) {
+
+            // Check whether the test already exists
             var dataExcludes;
             for (var dataTest of dataSuite.tests) {
-                if (testName == dataTest.name) {
-                    // Test already exists, get the excludes list
+                if (testName === dataTest.name) {
+
+                    // Test already exists, get it's excludes list
                     dataExcludes = dataTest.excludes;
                     break;
                 }
@@ -115,24 +120,44 @@ async function parseProblemList(PL, test, data) {
                 dataSuite.tests.push(newTest);
             }
 
-            var issue = testItems[1];
+            // Determine whether we should check the state of the issue. Cannot check state of jbs issues yet
             var state;
+            if (!testIssue.includes("bugs.openjdk.java")) {
 
-            if (!issue.includes("bugs.openjdk.java")) {
-                var apiIssue = issue.replace("https://github.com", "https://api.github.com/repos");
+                // Create the api url and go and check it
+                var apiIssue = testIssue.replace("https://github.com", "https://api.github.com/repos");
                 state = await isIssueOpen(apiIssue);
             } else {
                 state = "UNKNOWN";
             }
 
-            //console.log(state);
-
-            //state = "UNKNOWN";
-
             // Add new exclude data
-            dataExcludes.push({ version: PL.version, impl: PL.impl, state: state, platforms: [testItems[2]], issue: issue });
+            dataExcludes.push({ version: plData.version, impl: plData.impl, state: state, platforms: [testPlatforms], issue: testIssue });
         }
     }
 
     return data;
+}
+
+
+/**
+ * Uses the Github API to check the state of an issue
+ * @param {String} url Link to this issue
+ * @returns State of the issue
+ */
+async function isIssueOpen(url) {
+    
+    // Create request
+    const myHeaders = new Headers();
+    myHeaders.append('Content-Type', 'application/json');
+    myHeaders.append('Authorization', 'token ' + githubToken);
+    const settings = {
+        method: "GET",
+        headers: myHeaders
+    }
+
+    // Parse response and return it
+    const response = await fetch(url, settings);
+    const json = await response.json();
+    return json.state.toUpperCase();
 }
