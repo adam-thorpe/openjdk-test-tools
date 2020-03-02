@@ -10,8 +10,17 @@ const jdkImpls = ["hs", "j9", "up"];
 const testSuites = ["awt", "beans", "lang", "management", "jmx", "math", "net", "io", "jdi", "nio", "rmi", "security", "sound", "swing", "text", "time", "tools", "util", "misc"];
 
 class CellBlock extends Component {
+
+	constructor(props) {
+		super(props);
+		this.excludes = props.excludes;
+		this.version = props.version;
+	}
+
 	render() {
-		const { excludes, version } = this.props;
+		const excludes = this.excludes;
+		const version = this.version;
+		
 		return <div className="nested-wrapper">
 			{jdkImpls.map((impl, x) => {
 
@@ -60,7 +69,7 @@ class CellBlock extends Component {
 									return <div>{platform}</div>
 								})}
 								<div>
-									<a href={exclude.issue}>{issueDisplay}</a>
+									<a href={exclude.issue} target="_blank">{issueDisplay}</a>
 								</div>
 							</div>
 						);
@@ -84,9 +93,9 @@ export default class ProblemList extends Component {
 	constructor(props) {
 		super(props);
 		this.state = {
-			selectedJDKVersions: ["8"],
-			selectedJDKImpls: ["hs"],
-			selectedTestSuites: ["lang"],
+			selectedJDKVersions: ["8", "11", "14"],
+			selectedJDKImpls: ["hs", "j9"],
+			selectedTestSuites: ["lang", "management", "math", "net", "io", "nio", "rmi", "util", "misc"],
 			data: [],
 			isRenderData: false
 		};

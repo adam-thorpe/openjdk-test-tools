@@ -26,13 +26,20 @@ export default async function UpdateProblemLists( jdkVersions, jdkImpls, testSui
 
             // Upstream URL's
             } else if (impl === "up") {
+                var versionStr = version + "u";
                 var path = "";
-                if (version.sub <= 9) {
+                if (version <= 9) {
                     path = "jdk/test/";
                 } else {
                     path = "test/jdk/";
                 }
-                url = "https://api.github.com/repos/adoptopenjdk/openjdk-jdk" + version + "u/contents/" + path + "ProblemList.txt";
+
+                if (version === "14") {
+                    versionStr = version;
+                } else if (version === "15") {
+                    versionStr = "";
+                }
+                url = "https://api.github.com/repos/adoptopenjdk/openjdk-jdk" + versionStr + "/contents/" + path + "ProblemList.txt";
 
             // Hotspot URL's
             } else {
@@ -49,7 +56,6 @@ export default async function UpdateProblemLists( jdkVersions, jdkImpls, testSui
             }
         }
     }
-
     return data;
 }
 
@@ -59,6 +65,7 @@ export default async function UpdateProblemLists( jdkVersions, jdkImpls, testSui
  * @retuns An array of objects, each of which is a line in the problem list
  */
 function getProblemList(plData) {
+
     // Create the request
     var xhttp = new XMLHttpRequest();
     xhttp.open("GET", plData.url, false);
@@ -92,7 +99,7 @@ async function parseProblemList(test, plData, data) {
     }
 
     const testName = testItems[0];
-    const testIssue = testItems[1];
+    var testIssue = testItems[1];
     const testPlatforms = testItems[2];
 
     // Iterate through each suite of the array
@@ -121,13 +128,16 @@ async function parseProblemList(test, plData, data) {
             }
 
             // Determine whether we should check the state of the issue. Cannot check state of jbs issues yet
-            var state;
-            if (!testIssue.includes("bugs.openjdk.java")) {
+            var state = "";
+            if (testIssue.includes("https://github.com")) {
 
                 // Create the api url and go and check it
                 var apiIssue = testIssue.replace("https://github.com", "https://api.github.com/repos");
                 state = await isIssueOpen(apiIssue);
             } else {
+                if (!testIssue.includes("https://")) {
+                    testIssue = "https://bugs.openjdk.java.net/browse/JDK-" + testIssue;
+                }
                 state = "UNKNOWN";
             }
 
